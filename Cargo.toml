@@ -1,0 +1,24 @@
+[package]
+name = "mdp"
+version = "0.1.0"
+edition = "2024"
+description = "A terminal Markdown reader with clean, source-faithful copying"
+license = "MIT"
+repository = "https://github.com/qjsoong/mdp"
+rust-version = "1.89"
+keywords = ["markdown", "tui", "pager", "reader", "terminal"]
+categories = ["command-line-utilities", "text-processing"]
+
+[dependencies]
+anyhow = "1"
+base64 = "0.22"
+clap = { version = "4", features = ["derive"] }
+comrak = { version = "0.56", default-features = false }
+crossterm = "0.29"
+mdk-core = { git = "https://github.com/qjsoong/mdk.git", branch = "feat/term-document" }
+mdk-render = { git = "https://github.com/qjsoong/mdk.git", branch = "feat/term-document" }
+ratatui = "0.30.2"
+serde = { version = "1", features = ["derive"] }
+toml = "1"
+unicode-segmentation = "1"
+unicode-width = "0.2"

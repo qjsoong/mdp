@@ -1,0 +1,16 @@
+# Repository mdk configuration, used by `mdk lint` and `mdk fmt`.
+dialect = "gfm"
+
+[lint.rules.MD010]
+# README examples show tab-separated table output.
+code_blocks = false
+
+[lint.rules.MD013]
+line_length = 80
+code_blocks = false
+tables = false
+
+[fmt]
+line_width = 80
+heading_style = "atx"
+line_ending = "lf"
