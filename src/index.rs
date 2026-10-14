@@ -16,10 +16,20 @@ pub struct LinkRef {
     pub image: bool,
 }
 
-/// Links and images in reading order.
+/// A fenced or indented code block and its language.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CodeBlock {
+    /// Source range of the whole block, including its fence.
+    pub range: Range<usize>,
+    /// The language from the info string, if any.
+    pub language: Option<String>,
+}
+
+/// Links, images and code blocks in reading order.
 #[derive(Debug, Clone, Default)]
 pub struct Index {
     links: Vec<LinkRef>,
+    code: Vec<CodeBlock>,
 }
 
 impl Index {
@@ -30,24 +40,57 @@ impl Index {
         let options = dialect.comrak_options();
         with_parsed_options(&source, &options, |root| {
             let mut links = Vec::new();
+            let mut code = Vec::new();
             for node in root.descendants() {
                 let data = node.data();
-                let (link, image) = match &data.value {
-                    NodeValue::Link(link) => (link, false),
-                    NodeValue::Image(link) => (link, true),
-                    _ => continue,
-                };
-                if link.url.is_empty() {
-                    continue;
+                match &data.value {
+                    NodeValue::Link(link) => {
+                        if link.url.is_empty() {
+                            continue;
+                        }
+                        links.push(LinkRef {
+                            range: source.span_range(mdk_core::ast::node_span(node)),
+                            url: link.url.clone(),
+                            image: false,
+                        });
+                    }
+                    NodeValue::Image(link) => {
+                        if link.url.is_empty() {
+                            continue;
+                        }
+                        links.push(LinkRef {
+                            range: source.span_range(mdk_core::ast::node_span(node)),
+                            url: link.url.clone(),
+                            image: true,
+                        });
+                    }
+                    NodeValue::CodeBlock(block) => {
+                        let language = block
+                            .info
+                            .split(|ch: char| ch.is_whitespace() || ch == ',')
+                            .next()
+                            .filter(|token| !token.is_empty())
+                            .map(str::to_string);
+                        code.push(CodeBlock {
+                            range: source.span_range(mdk_core::ast::node_span(node)),
+                            language,
+                        });
+                    }
+                    _ => {}
                 }
-                links.push(LinkRef {
-                    range: source.span_range(mdk_core::ast::node_span(node)),
-                    url: link.url.clone(),
-                    image,
-                });
             }
-            Self { links }
+            Self { links, code }
         })
+    }
+
+    /// The language of the code block containing a source offset.
+    #[must_use]
+    pub fn code_language(&self, offset: usize) -> Option<&str> {
+        self.code
+            .iter()
+            .filter(|block| block.range.contains(&offset))
+            .min_by_key(|block| block.range.len())
+            .and_then(|block| block.language.as_deref())
     }
 
     /// The innermost link containing a source offset.
@@ -90,6 +133,17 @@ mod tests {
     fn ignores_links_without_a_destination() {
         let index = index("[text]()\n");
         assert!(index.at(2).is_none());
+    }
+
+    #[test]
+    fn finds_code_block_languages() {
+        let index = index("text\n\n```rust,no_run\nlet x = 1;\n```\n\n    indented\n");
+        let offset = 12;
+        assert_eq!(index.code_language(offset), Some("rust"));
+        let indented = "text\n\n```rust,no_run\nlet x = 1;\n```\n\n    indented\n"
+            .find("indented")
+            .expect("offset");
+        assert_eq!(index.code_language(indented), None);
     }
 
     #[test]

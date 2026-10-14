@@ -11,6 +11,7 @@ use ratatui::layout::Rect;
 use crate::clipboard;
 use crate::coords;
 use crate::document::Document;
+use crate::highlight::Highlighter;
 use crate::search::Search;
 use crate::selection::{self, Point, Selection};
 use crate::theme::Theme;
@@ -67,13 +68,21 @@ pub struct App {
     pub drag_anchor: Option<Point>,
     /// Width the document was rendered at.
     pub content_width: u16,
+    /// Syntax highlighter, when enabled.
+    pub highlighter: Option<Highlighter>,
 }
 
 impl App {
     /// Creates an app for an open document.
     #[must_use]
-    pub fn new(document: Document, config: Config, theme: Theme) -> Self {
+    pub fn new(mut document: Document, config: Config, theme: Theme) -> Self {
         let content_width = document.width;
+        let highlighter = if config.syntax_highlighting && theme.name != "none" {
+            Highlighter::new(config.theme)
+        } else {
+            None
+        };
+        document.highlight(highlighter.as_ref());
         Self {
             config,
             theme,
@@ -90,7 +99,13 @@ impl App {
             quit: false,
             drag_anchor: None,
             content_width,
+            highlighter,
         }
+    }
+
+    /// Recomputes syntax colours after the document changed.
+    fn refresh_highlights(&mut self) {
+        self.document.highlight(self.highlighter.as_ref());
     }
 
     /// The content width for a terminal area.
@@ -106,6 +121,7 @@ impl App {
         if width != self.content_width {
             self.content_width = width;
             self.document.render(width);
+            self.refresh_highlights();
         }
         self.view.clamp(&self.document, self.content_height());
         self.view
@@ -426,6 +442,7 @@ impl App {
         if self.config.live_reload
             && let Ok(true) = self.document.reload_if_changed()
         {
+            self.refresh_highlights();
             self.set_message("Reloaded");
             self.view.clamp(&self.document, self.content_height());
             let width = usize::from(self.content_width);
@@ -806,6 +823,7 @@ impl App {
         };
         match result {
             Ok(true) => {
+                self.refresh_highlights();
                 self.set_message("Reloaded");
                 self.view.clamp(&self.document, self.content_height());
             }

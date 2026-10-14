@@ -54,6 +54,8 @@ pub struct Config {
     pub live_reload: bool,
     /// Case sensitive search; when false, search is smart case.
     pub case_sensitive_search: bool,
+    /// Highlight fenced code blocks by language.
+    pub syntax_highlighting: bool,
 }
 
 impl Default for Config {
@@ -66,6 +68,7 @@ impl Default for Config {
             status_bar: true,
             live_reload: true,
             case_sensitive_search: false,
+            syntax_highlighting: true,
         }
     }
 }
@@ -145,6 +148,9 @@ live_reload = true
 # Make search case sensitive. When false, a query with an upper-case
 # letter is case sensitive and an all-lower-case query is not.
 case_sensitive_search = false
+
+# Highlight fenced code blocks using their language tag.
+syntax_highlighting = true
 ";
 
 fn default_path() -> Option<PathBuf> {

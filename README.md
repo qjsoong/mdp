@@ -32,6 +32,8 @@ Rust	fast
   Markdown source of the same region.
 - **GFM rendering** through [mdk](https://github.com/qjsoong/mdk): wrapped
   prose, box-drawing tables, task lists, footnotes and heading levels.
+- **Syntax highlighting** for fenced code blocks, using the language from the
+  info string.
 - **Reader navigation.** Block and heading jumps, an outline, smart-case search
   with highlights, link opening, horizontal scrolling for long code lines.
 - **Live reload.** The document is re-rendered when the file changes on disk.
@@ -116,6 +118,7 @@ clipboard = "auto"        # auto, osc52, command or none
 status_bar = true
 live_reload = true
 case_sensitive_search = false  # otherwise smart case
+syntax_highlighting = true     # colour code blocks by language
 ```
 
 `clipboard = "auto"` uses `wl-copy`, `xclip`, `xsel` or `pbcopy` when one is

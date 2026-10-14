@@ -6,6 +6,7 @@ mod clipboard;
 mod config;
 mod coords;
 mod document;
+mod highlight;
 mod index;
 mod search;
 mod selection;

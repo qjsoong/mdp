@@ -106,6 +106,11 @@ pub fn draw(buf: &mut Buffer, area: Rect, scene: &Scene<'_>) {
     let width = area.width.saturating_sub(gutter);
     let height = usize::from(area.height);
     let lines = document.lines();
+    let code_span = |line: &mdk_render::term::Line| {
+        (line.kind == mdk_render::term::LineKind::Code)
+            .then(|| line.spans.iter().position(|span| !span.source.is_none()))?
+    };
+    let _ = &code_span;
     if lines.is_empty() {
         buf.set_stringn(
             area.x,
@@ -133,6 +138,16 @@ pub fn draw(buf: &mut Buffer, area: Rect, scene: &Scene<'_>) {
             }
             let x = area.x + screen as u16;
             let mut style = theme.span_style(line, &line.spans[cell.span]);
+            if line.kind == mdk_render::term::LineKind::Code
+                && let Some(span_index) = code_span(line)
+                && span_index == cell.span
+                && let Some(ranges) = document.highlights.get(index)
+                && let Some((_, color)) = ranges
+                    .iter()
+                    .find(|(range, _)| cell.byte >= range.start && cell.byte < range.end)
+            {
+                style = style.fg(*color);
+            }
             style = apply_search(style, search, index, &cell, theme);
             if let Some(selection) = selection
                 && selection.covers(index, cell.column, cell.width)

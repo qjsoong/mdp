@@ -7,12 +7,30 @@ use std::time::SystemTime;
 
 use anyhow::{Context, Result};
 use mdk_core::Dialect;
-use mdk_render::term::{BlockKind, Line};
+use mdk_render::term::{BlockKind, Line, LineKind, SourceMap};
 use mdk_render::{TermOptions, render_terminal_document};
 
 use crate::coords;
+use crate::highlight::Highlighter;
 use crate::index::{Index, LinkRef};
 use crate::selection::Point;
+
+/// The code text of a rendered code line, without its gutter.
+fn code_text(line: &Line) -> &str {
+    line.spans
+        .iter()
+        .find(|span| !span.source.is_none())
+        .map_or("", |span| span.text.as_str())
+}
+
+/// The first source offset mapped on a rendered line.
+fn first_source_offset(line: &Line) -> Option<usize> {
+    line.spans.iter().find_map(|span| match &span.source {
+        SourceMap::Verbatim(start) => Some(*start),
+        SourceMap::PerChar(ranges) => ranges.iter().flatten().map(|range| range.start).min(),
+        SourceMap::None => None,
+    })
+}
 
 /// A heading and the rendered line it starts on.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -41,6 +59,8 @@ pub struct Document {
     pub headings: Vec<Heading>,
     /// Width the content was rendered at.
     pub width: u16,
+    /// Syntax colours per rendered line; empty for lines that are not code.
+    pub highlights: Vec<Vec<(std::ops::Range<usize>, ratatui::style::Color)>>,
     modified: Option<SystemTime>,
 }
 
@@ -64,6 +84,7 @@ impl Document {
             index: Index::default(),
             headings: Vec::new(),
             width,
+            highlights: Vec::new(),
             modified,
         };
         document.render(width);
@@ -82,6 +103,7 @@ impl Document {
             index: Index::default(),
             headings: Vec::new(),
             width,
+            highlights: Vec::new(),
             modified: None,
         };
         document.render(width);
@@ -125,7 +147,43 @@ impl Document {
             ..TermOptions::default()
         };
         self.rendered = render_terminal_document(&self.source, self.dialect, &options);
+        self.highlights.clear();
         self.rebuild_headings();
+    }
+
+    /// Computes syntax colours for code blocks.
+    pub fn highlight(&mut self, highlighter: Option<&Highlighter>) {
+        self.highlights = vec![Vec::new(); self.rendered.lines.len()];
+        let Some(highlighter) = highlighter else {
+            return;
+        };
+        let mut index = 0;
+        while index < self.rendered.lines.len() {
+            if self.rendered.lines[index].kind != LineKind::Code {
+                index += 1;
+                continue;
+            }
+            let block = self.rendered.lines[index].block;
+            let start = index;
+            while index < self.rendered.lines.len()
+                && self.rendered.lines[index].kind == LineKind::Code
+                && self.rendered.lines[index].block == block
+            {
+                index += 1;
+            }
+            let texts: Vec<&str> = self.rendered.lines[start..index]
+                .iter()
+                .map(code_text)
+                .collect();
+            let language = first_source_offset(&self.rendered.lines[start])
+                .and_then(|offset| self.index.code_language(offset));
+            let styled = highlighter.highlight(language, &texts);
+            for (offset, ranges) in styled.into_iter().enumerate() {
+                if let Some(slot) = self.highlights.get_mut(start + offset) {
+                    *slot = ranges;
+                }
+            }
+        }
     }
 
     /// Rebuilds the link index from the current source text.
@@ -274,19 +332,7 @@ mod tests {
     use super::*;
 
     fn document(markdown: &str) -> Document {
-        let mut document = Document {
-            path: None,
-            source: markdown.to_string(),
-            dialect: Dialect::Gfm,
-            rendered: mdk_render::term::Document::default(),
-            index: Index::default(),
-            headings: Vec::new(),
-            width: 80,
-            modified: None,
-        };
-        document.render(80);
-        document.rebuild_index();
-        document
+        Document::from_source(markdown, Dialect::Gfm, 80)
     }
 
     #[test]
