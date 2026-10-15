@@ -19,7 +19,7 @@ use crate::selection::Point;
 fn code_text(line: &Line) -> &str {
     line.spans
         .iter()
-        .find(|span| !span.source.is_none())
+        .find(|span| !matches!(span.source, SourceMap::None))
         .map_or("", |span| span.text.as_str())
 }
 

@@ -831,8 +831,8 @@ dependencies = [
 
 [[package]]
 name = "mdk-core"
-version = "0.1.0"
-source = "git+https://github.com/qjsoong/mdk.git?branch=feat%2Fterm-document#148be560256f94874e50121ccc1413dcad942004"
+version = "0.3.0"
+source = "git+https://github.com/qjsoong/mdk.git?tag=v0.3.0#6684f805cae9b8c771eb860241cc16e91f2ea608"
 dependencies = [
  "comrak",
  "serde",
@@ -842,8 +842,8 @@ dependencies = [
 
 [[package]]
 name = "mdk-render"
-version = "0.1.0"
-source = "git+https://github.com/qjsoong/mdk.git?branch=feat%2Fterm-document#148be560256f94874e50121ccc1413dcad942004"
+version = "0.3.0"
+source = "git+https://github.com/qjsoong/mdk.git?tag=v0.3.0#6684f805cae9b8c771eb860241cc16e91f2ea608"
 dependencies = [
  "comrak",
  "mdk-core",

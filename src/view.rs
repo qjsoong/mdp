@@ -9,6 +9,7 @@ use crate::document::Document;
 use crate::search::Search;
 use crate::selection::{Point, Selection};
 use crate::theme::Theme;
+use mdk_render::term::SourceMap;
 
 /// Scroll and cursor state of the content area.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -107,10 +108,12 @@ pub fn draw(buf: &mut Buffer, area: Rect, scene: &Scene<'_>) {
     let height = usize::from(area.height);
     let lines = document.lines();
     let code_span = |line: &mdk_render::term::Line| {
-        (line.kind == mdk_render::term::LineKind::Code)
-            .then(|| line.spans.iter().position(|span| !span.source.is_none()))?
+        (line.kind == mdk_render::term::LineKind::Code).then(|| {
+            line.spans
+                .iter()
+                .position(|span| !matches!(span.source, SourceMap::None))
+        })?
     };
-    let _ = &code_span;
     if lines.is_empty() {
         buf.set_stringn(
             area.x,
