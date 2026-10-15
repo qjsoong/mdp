@@ -43,7 +43,8 @@ Rust	fast
 ## Install
 
 Requires Rust 1.89 or newer. The Markdown engine
-([mdk](https://github.com/qjsoong/mdk)) is fetched and built automatically.
+([mdk](https://github.com/qjsoong/mdk) v0.3.0) is fetched and built
+automatically.
 
 ```bash
 git clone https://github.com/qjsoong/mdp
@@ -135,6 +136,17 @@ text is the source text behind them. Characters the renderer generated, such as
 table borders, bullets and padding, have no source range and are dropped. Table
 rows are assembled from their cells instead, because a rendered grid is not a
 slice of source text.
+
+## Status and non-goals
+
+`mdp` is early software (0.1.0) for terminal reading. Deliberately out of scope
+for now:
+
+- Images are shown as their alt text and URL.
+- There is no file browser: pass a file, pipe one in, or run `mdp` in a
+  directory with a `README.md`.
+- No binaries are published; build from source.
+- Highlighting and layout target ordinary terminals, not 24-bit-only ones.
 
 ## Development
 
